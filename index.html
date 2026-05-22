@@ -24,12 +24,8 @@
             font-family: 'Open Sans', sans-serif !important;
         }
         body {
-            background-color: #f5fcf4;
-            background-image:
-                radial-gradient(circle at 8% 12%, rgba(141, 223, 146, 0.4) 0%, rgba(141, 223, 146, 0) 36%),
-                radial-gradient(circle at 92% 10%, rgba(84, 176, 101, 0.28) 0%, rgba(84, 176, 101, 0) 32%),
-                radial-gradient(circle at 18% 88%, rgba(188, 237, 186, 0.5) 0%, rgba(188, 237, 186, 0) 44%),
-                linear-gradient(140deg, #f6fdf4 0%, #e8f7e3 46%, #d9efda 100%);
+            background-color: #ffffff;
+            background-image: none;
             background-attachment: fixed;
             color: #2A5429;
             font-family: 'Open Sans', sans-serif;
@@ -360,7 +356,6 @@
         .map-node-link-action {
             position: absolute;
             top: -10px;
-            right: -10px;
             width: 34px;
             height: 34px;
             border-radius: 999px;
@@ -375,6 +370,37 @@
             pointer-events: none;
             transition: opacity 0.18s ease, transform 0.18s ease;
             transform: translateY(4px);
+        }
+        .map-node-change-action {
+            left: -10px;
+            right: auto;
+        }
+        .map-node-delete-action {
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            width: 30px;
+            height: 30px;
+            border-radius: 999px;
+            border: 1px solid rgba(42, 84, 41, 0.35);
+            background: #ffffff;
+            color: #2A5429;
+            box-shadow: 0 10px 24px rgba(15, 23, 42, 0.14);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.95rem;
+            font-weight: 800;
+            line-height: 1;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.18s ease, transform 0.18s ease;
+            transform: translateY(4px);
+        }
+        .map-node:hover .map-node-delete-action {
+            opacity: 1;
+            pointer-events: auto;
+            transform: translateY(0);
         }
         .map-node:hover .map-node-link-action,
         .map-node-selected .map-node-link-action {
@@ -392,6 +418,11 @@
             stroke: #2A5429;
             stroke-dasharray: 8 6;
             animation: flowLine 1s linear infinite;
+        }
+        .map-link-flow-arrow {
+            fill: #2A5429;
+            opacity: 0.9;
+            filter: drop-shadow(0 2px 3px rgba(15, 23, 42, 0.18));
         }
         .map-link-hit {
             stroke: transparent;
@@ -675,7 +706,9 @@
             top: 10px;
             right: 10px;
             display: flex;
+            flex-direction: column;
             gap: 8px;
+            align-items: flex-end;
             z-index: 15;
         }
         .map-zoom-btn {
@@ -692,6 +725,84 @@
             align-items: center;
             justify-content: center;
             box-shadow: 0 8px 20px rgba(15, 23, 42, 0.12);
+        }
+        .map-add-btn {
+            width: auto;
+            min-width: 62px;
+            padding: 0 12px;
+            font-size: 0.86rem;
+            font-weight: 700;
+            text-transform: lowercase;
+        }
+        .map-add-menu {
+            position: absolute;
+            top: calc(100% + 8px);
+            right: 0;
+            width: 228px;
+            max-height: 280px;
+            border-radius: 14px;
+            border: 1px solid rgba(42, 84, 41, 0.28);
+            background: rgba(255, 255, 255, 0.98);
+            box-shadow: 0 16px 36px rgba(15, 23, 42, 0.18);
+            padding: 8px;
+            display: none;
+            overflow-y: auto;
+            overflow-x: hidden;
+            backdrop-filter: blur(8px);
+        }
+        .map-add-menu.visible {
+            display: block;
+        }
+        .map-add-option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            width: 100%;
+            border: 1px solid transparent;
+            border-radius: 10px;
+            padding: 8px 10px;
+            font-size: 0.88rem;
+            font-weight: 600;
+            color: #1f2937;
+            background: transparent;
+            text-align: left;
+            cursor: pointer;
+            transition: background 0.14s ease, border-color 0.14s ease;
+        }
+        .map-add-option:hover {
+            background: #f0f8f0;
+            border-color: rgba(42, 84, 41, 0.35);
+        }
+        .map-add-option img {
+            width: 18px;
+            height: 18px;
+            object-fit: contain;
+            flex-shrink: 0;
+        }
+        .map-mode-toggle {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px;
+            border-radius: 999px;
+            border: 1px solid rgba(42, 84, 41, 0.2);
+            background: #f8fcf7;
+        }
+        .map-mode-btn {
+            border: 1px solid transparent;
+            background: transparent;
+            color: #2A5429;
+            font-size: 0.78rem;
+            font-weight: 700;
+            padding: 0.36rem 0.75rem;
+            border-radius: 999px;
+            line-height: 1.1;
+            transition: background 0.16s ease, color 0.16s ease, border-color 0.16s ease;
+        }
+        .map-mode-btn.is-active {
+            background: #2A5429;
+            color: #ffffff;
+            border-color: #2A5429;
         }
         #view1 .text-slate-500,
         #view1 .text-slate-600,
@@ -847,7 +958,6 @@
                     <h3 id="productsSectionTitle" class="subheading">Products</h3>
                     <p id="productsSectionDesc" class="subheading-copy input-subsection">Select all types of products you manufacture</p>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-3 input-subsection">
-                        <label class="selectable-option"><input type="checkbox" name="productType" value="Elements"> <span>Elements</span></label>
                         <label class="selectable-option"><input type="checkbox" name="productType" value="SIP panels"> <span>SIP panels</span></label>
                         <label class="selectable-option"><input type="checkbox" name="productType" value="CLT panels"> <span>CLT panels</span></label>
                         <label class="selectable-option"><input type="checkbox" name="productType" value="Trusses"> <span>Trusses</span></label>
@@ -1205,13 +1315,34 @@
                     </script>
             <div class="flex flex-col gap-2 mb-4 md:flex-row md:items-center md:justify-between">
                 <div class="w-full">
-                    <h3 id="interactiveMapTitle" class="output-section-title"><svg class="output-section-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 4h12v16H6z"></path><path d="M9 8h6"></path><path d="M9 12h6"></path><path d="M9 16h4"></path></svg><span class="output-section-title-text">Interactive production map</span></h3>
+                    <h3 id="interactiveMapTitle" class="output-section-title mb-0"><svg class="output-section-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 4h12v16H6z"></path><path d="M9 8h6"></path><path d="M9 12h6"></path><path d="M9 16h4"></path></svg><span class="output-section-title-text">Interactive production map</span></h3>
+                </div>
+                <div class="map-mode-toggle" role="group" aria-label="Map mode">
+                    <button type="button" class="map-mode-btn is-active" data-map-mode="dynamic">1</button>
+                    <button type="button" class="map-mode-btn" data-map-mode="fixed-1">2</button>
+                    <button type="button" class="map-mode-btn" data-map-mode="fixed-2">3</button>
                 </div>
             </div>
             <div id="productionMap" class="map-surface rounded-[1.5rem] border border-slate-200">
                 <div class="map-zoom-controls">
                     <button id="mapZoomOutBtn" type="button" class="map-zoom-btn" aria-label="Zoom out">−</button>
                     <button id="mapZoomInBtn" type="button" class="map-zoom-btn" aria-label="Zoom in">+</button>
+                    <button id="mapAddBtn" type="button" class="map-zoom-btn map-add-btn" aria-label="Add node">+add</button>
+                    <div id="mapAddMenu" class="map-add-menu" role="menu" aria-label="Add map node">
+                        <button type="button" class="map-add-option" data-map-add-type="server" role="menuitem"><img src="server.png" alt="Server icon"><span>hsbServer</span></button>
+                        <button type="button" class="map-add-option" data-map-add-type="office" role="menuitem"><img src="office.png" alt="Office icon"><span>hsbMake Office</span></button>
+                        <button type="button" class="map-add-option" data-map-add-type="client-manual" role="menuitem"><img src="manual.png" alt="Work station icon"><span>hsbClient Work station</span></button>
+                        <button type="button" class="map-add-option" data-map-add-type="client-cnc" role="menuitem"><img src="CNC.png" alt="CNC machine icon"><span>hsbClient CNC Machine</span></button>
+                        <button type="button" class="map-add-option" data-map-add-type="client-beam-cutting" role="menuitem"><img src="bc1.png" alt="Beam Cutting icon"><span>Beam Cutting</span></button>
+                        <button type="button" class="map-add-option" data-map-add-type="client-window-modules" role="menuitem"><img src="Window modules.png" alt="Window Modules icon"><span>Window Modules</span></button>
+                        <button type="button" class="map-add-option" data-map-add-type="client-wall-assembly" role="menuitem"><img src="Wall assembly.png" alt="Wall Assembly icon"><span>Wall Assembly</span></button>
+                        <button type="button" class="map-add-option" data-map-add-type="client-sheet-internal" role="menuitem"><img src="Sheet internal.png" alt="Sheet Internal icon"><span>Sheet Internal</span></button>
+                        <button type="button" class="map-add-option" data-map-add-type="client-wall-flip" role="menuitem"><img src="Wall flip.png" alt="Wall Flip icon"><span>Wall Flip</span></button>
+                        <button type="button" class="map-add-option" data-map-add-type="client-insulation-installation" role="menuitem"><img src="Insulation and installation.png" alt="Insulation and Installation icon"><span>Insulation & Installation</span></button>
+                        <button type="button" class="map-add-option" data-map-add-type="client-sheet-external" role="menuitem"><img src="Sheet external.png" alt="Sheet External icon"><span>Sheet External</span></button>
+                        <button type="button" class="map-add-option" data-map-add-type="client-facade" role="menuitem"><img src="Facade.png" alt="Facade icon"><span>Facade</span></button>
+                        <button type="button" class="map-add-option" data-map-add-type="client-loading" role="menuitem"><img src="Loading.png" alt="Loading icon"><span>Loading</span></button>
+                    </div>
                 </div>
                 <svg id="mapLinks" class="absolute inset-0 h-full w-full"></svg>
                 <div id="mapNodes" class="absolute inset-0"></div>
@@ -2423,6 +2554,9 @@
             const productionMap = document.getElementById('productionMap');
             const mapLinks = document.getElementById('mapLinks');
             const mapNodes = document.getElementById('mapNodes');
+            const mapAddBtn = document.getElementById('mapAddBtn');
+            const mapAddMenu = document.getElementById('mapAddMenu');
+            const mapModeButtons = Array.from(document.querySelectorAll('[data-map-mode]'));
             const menuInputBtn = document.getElementById('menuInputBtn');
             const menuCompanyBtn = document.getElementById('menuCompanyBtn');
             const menuPersonnelBtn = document.getElementById('menuPersonnelBtn');
@@ -2452,6 +2586,18 @@
             let mapTypeMenuElement = null;
             let mapTypeMenuNodeId = null;
             let pendingClientTypeChange = null;
+            let mapMode = 'dynamic';
+            let mapCustomNodeCounter = 0;
+            const mapDeletedNodeIdsByMode = {
+                dynamic: new Set(),
+                'fixed-1': new Set(),
+                'fixed-2': new Set()
+            };
+            const mapAddedNodesByMode = {
+                dynamic: [],
+                'fixed-1': [],
+                'fixed-2': []
+            };
 
             const SUPABASE_PROJECT_URL = 'https://uimnbionirmqtwfqsvox.supabase.co';
             const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVpbW5iaW9uaXJtcXR3ZnFzdm94Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkxMjg0MjEsImV4cCI6MjA5NDcwNDQyMX0.uUaFniCACYRougyFEJpcRBGsixuEBQ3744OXW1Tn8W0';
@@ -2851,6 +2997,33 @@
                 if (type === 'office') {
                     return '<img src="office.png" alt="Office" class="h-6 w-6 object-contain">';
                 }
+                if (type === 'client-beam-cutting') {
+                    return '<img src="bc1.png" alt="Beam cutting" class="h-9 w-9 object-contain">';
+                }
+                if (type === 'client-window-modules') {
+                    return '<img src="Window modules.png" alt="Window Modules" class="h-6 w-6 object-contain">';
+                }
+                if (type === 'client-wall-assembly') {
+                    return '<img src="Wall assembly.png" alt="Wall Assembly" class="h-6 w-6 object-contain">';
+                }
+                if (type === 'client-sheet-internal') {
+                    return '<img src="Sheet internal.png" alt="Sheet Internal" class="h-6 w-6 object-contain">';
+                }
+                if (type === 'client-wall-flip') {
+                    return '<img src="Wall flip.png" alt="Wall Flip" class="h-6 w-6 object-contain">';
+                }
+                if (type === 'client-insulation-installation') {
+                    return '<img src="Insulation and installation.png" alt="Insulation and Installation" class="h-6 w-6 object-contain">';
+                }
+                if (type === 'client-sheet-external') {
+                    return '<img src="Sheet external.png" alt="Sheet External" class="h-6 w-6 object-contain">';
+                }
+                if (type === 'client-facade') {
+                    return '<img src="Facade.png" alt="Facade" class="h-6 w-6 object-contain">';
+                }
+                if (type === 'client-loading') {
+                    return '<img src="Loading.png" alt="Loading" class="h-6 w-6 object-contain">';
+                }
                 if (type === 'client-manual') {
                     return '<img src="manual.png" alt="Work station" class="h-6 w-6 object-contain">';
                 }
@@ -2865,31 +3038,234 @@
             }
 
             function getMapDimensions() {
+                const minHeight = 520;
+                if (productionMap.style.minHeight !== `${minHeight}px`) {
+                    productionMap.style.minHeight = `${minHeight}px`;
+                }
                 const rect = productionMap.getBoundingClientRect();
                 const zoom = Math.max(0.01, mapZoom || 1);
                 return {
                     width: Math.max(320, (rect.width || productionMap.clientWidth || 960) / zoom),
-                    height: Math.max(420, (rect.height || productionMap.clientHeight || 520) / zoom)
+                    height: Math.max(minHeight, (rect.height || productionMap.clientHeight || minHeight) / zoom)
                 };
+            }
+
+            function getCurrentModeDeletedNodeIds() {
+                return mapDeletedNodeIdsByMode[mapMode] || mapDeletedNodeIdsByMode.dynamic;
+            }
+
+            function getCurrentModeAddedNodes() {
+                return mapAddedNodesByMode[mapMode] || mapAddedNodesByMode.dynamic;
+            }
+
+            function clampMapNodePosition(node, width, height) {
+                return {
+                    ...node,
+                    x: Math.min(Math.max(8, node.x), width - 236),
+                    y: Math.min(Math.max(8, node.y), height - 108)
+                };
+            }
+
+            function getMapNodeTemplate(type, index = 1) {
+                if (type === 'server') {
+                    return { title: 'hsbServer', label: index > 1 ? `Server ${index}` : 'Server' };
+                }
+                if (type === 'office') {
+                    return { title: 'hsbMake Office', label: index > 1 ? `Office ${index}` : 'Office' };
+                }
+                if (type === 'client-cnc') {
+                    return { title: 'hsbClient', label: index > 1 ? `CNC machine ${index}` : 'CNC machine' };
+                }
+                return { title: 'hsbClient', label: index > 1 ? `Work station ${index}` : 'Work station' };
+            }
+
+            function applyMapNodeCustomizations(baseNodes, width, height) {
+                const deletedIds = getCurrentModeDeletedNodeIds();
+                const addedNodes = getCurrentModeAddedNodes();
+                const visibleNodes = baseNodes.filter(node => !deletedIds.has(node.id));
+                return [...visibleNodes, ...addedNodes].map(node => clampMapNodePosition(node, width, height));
+            }
+
+            function closeMapAddMenu() {
+                mapAddMenu?.classList.remove('visible');
+            }
+
+            function toggleMapAddMenu() {
+                mapAddMenu?.classList.toggle('visible');
+            }
+
+            function addMapNode(type) {
+                const { width, height } = getMapDimensions();
+                const specialClientTypes = {
+                    'client-beam-cutting': 'Beam Cutting',
+                    'client-window-modules': 'Window Modules',
+                    'client-wall-assembly': 'Wall Assembly',
+                    'client-sheet-internal': 'Sheet Internal',
+                    'client-wall-flip': 'Wall Flip',
+                    'client-insulation-installation': 'Insulation & Installation',
+                    'client-sheet-external': 'Sheet External',
+                    'client-facade': 'Facade',
+                    'client-loading': 'Loading'
+                };
+                const isSpecialClient = Object.prototype.hasOwnProperty.call(specialClientTypes, type);
+                const baseType = isSpecialClient ? 'client-manual' : type;
+                const currentCount = mapNodeState.filter(node => node.type === baseType).length + 1;
+                const template = isSpecialClient
+                    ? { title: 'hsbClient', label: specialClientTypes[type] }
+                    : getMapNodeTemplate(baseType, currentCount);
+                const nodeIndex = mapNodeState.length;
+                const column = nodeIndex % 3;
+                const row = Math.floor(nodeIndex / 3);
+                getCurrentModeAddedNodes().push(clampMapNodePosition({
+                    id: `custom-${mapMode}-${++mapCustomNodeCounter}`,
+                    type: baseType,
+                    title: template.title,
+                    label: template.label,
+                    iconType: isSpecialClient ? type : null,
+                    x: 24 + (column * 246),
+                    y: 84 + (row * 118)
+                }, width, height));
+                closeMapAddMenu();
+                renderProductionMap();
+            }
+
+            function deleteMapNode(nodeId) {
+                const addedNodes = getCurrentModeAddedNodes();
+                const addedIndex = addedNodes.findIndex(node => node.id === nodeId);
+                if (addedIndex >= 0) {
+                    addedNodes.splice(addedIndex, 1);
+                } else {
+                    getCurrentModeDeletedNodeIds().add(nodeId);
+                }
+
+                manualMapLinks = manualMapLinks.filter(link => link.from !== nodeId && link.to !== nodeId);
+                if (selectedMapNodeId === nodeId) {
+                    selectedMapNodeId = null;
+                    previewConnectionPoint = null;
+                }
+                if (mapTypeMenuNodeId === nodeId) {
+                    closeMapTypeMenu();
+                }
+                renderProductionMap();
             }
 
             function createDefaultNodePosition(type, index, total, width, height) {
-                const columns = {
-                    server: width * 0.10,
-                    office: width * 0.33,
-                    'client-cnc': width * 0.58,
-                    'client-manual': width * 0.83
+                const rows = {
+                    server: height * 0.08,
+                    office: height * 0.30,
+                    'client-cnc': height * 0.52,
+                    'client-manual': height * 0.74
                 };
-                const usableHeight = Math.max(120, height - 140);
-                const spacing = total > 1 ? usableHeight / (total - 1) : 0;
-                const top = 40 + (total > 1 ? spacing * index : usableHeight / 2);
+                const usableWidth = Math.max(120, width - 260);
+                const spacing = total > 1 ? usableWidth / (total - 1) : 0;
+                const left = 20 + (total > 1 ? spacing * index : usableWidth / 2);
                 return {
-                    x: columns[type] - 114,
-                    y: top
+                    x: left,
+                    y: rows[type] - 47
                 };
             }
 
+            function updateMapModeToggleUI() {
+                mapModeButtons.forEach(button => {
+                    button.classList.toggle('is-active', button.dataset.mapMode === mapMode);
+                });
+            }
+
+            function isInteractiveMapMode() {
+                return mapMode === 'dynamic';
+            }
+
+            function buildFixedMapPreset(preset, width, height) {
+                const nodes = [];
+                const links = [];
+
+                function addNode(id, type, title, label, x, y, iconType = null) {
+                    nodes.push({
+                        id,
+                        type,
+                        title,
+                        label,
+                        x,
+                        y,
+                        iconType
+                    });
+                }
+
+                if (preset === 'fixed-1') {
+                    addNode('server-1', 'server', 'hsbServer', 'Server', width * 0.01, height * 0.07);
+
+                    addNode('office-2', 'office', 'hsbMake Office', 'Office 2', width * 0.24, height * 0.07);
+                    addNode('office-5', 'office', 'hsbMake Office', 'Office 5', width * 0.41, height * 0.07);
+                    addNode('office-3', 'office', 'hsbMake Office', 'Office 3', width * 0.24, height * 0.21);
+                    addNode('office-4', 'office', 'hsbMake Office', 'Office 4', width * 0.41, height * 0.21);
+                    addNode('office-1', 'office', 'hsbMake Office', 'Office 1', width * 0.58, height * 0.14);
+
+                    addNode('beam-cutting-1', 'client-manual', 'hsbClient', 'Beam Cutting 1', width * 0.01, height * 0.42, 'client-beam-cutting');
+                    addNode('beam-cutting-2', 'client-manual', 'hsbClient', 'Beam Cutting 2', width * 0.21, height * 0.42, 'client-beam-cutting');
+
+                    addNode('window-modules-1', 'client-manual', 'hsbClient', 'Window Modules', width * 0.40, height * 0.42, 'client-window-modules');
+                    addNode('wall-assembly-1', 'client-manual', 'hsbClient', 'Wall Assembly', width * 0.58, height * 0.42, 'client-wall-assembly');
+                    addNode('sheet-internal-1', 'client-manual', 'hsbClient', 'Sheet Internal', width * 0.78, height * 0.41, 'client-sheet-internal');
+                    addNode('wall-flip-1', 'client-manual', 'hsbClient', 'Wall Flip', width * 0.78, height * 0.57, 'client-wall-flip');
+
+                    addNode('insulation-installation-1', 'client-manual', 'hsbClient', 'Insulation & Installation', width * 0.78, height * 0.74, 'client-insulation-installation');
+                    addNode('sheet-external-1', 'client-manual', 'hsbClient', 'Sheet External', width * 0.58, height * 0.74, 'client-sheet-external');
+                    addNode('facade-1', 'client-manual', 'hsbClient', 'Facade', width * 0.40, height * 0.74, 'client-facade');
+                    addNode('loading-1', 'client-manual', 'hsbClient', 'Loading', width * 0.11, height * 0.74, 'client-loading');
+
+                    links.push(
+                        { from: 'server-1', to: 'office-1' },
+                        { from: 'server-1', to: 'office-2' },
+                        { from: 'server-1', to: 'office-3' },
+                        { from: 'server-1', to: 'office-4' },
+                        { from: 'server-1', to: 'office-5' },
+                        { from: 'server-1', to: 'beam-cutting-1' },
+                        { from: 'beam-cutting-1', to: 'beam-cutting-2' },
+                        { from: 'beam-cutting-2', to: 'window-modules-1' },
+                        { from: 'window-modules-1', to: 'wall-assembly-1' },
+                        { from: 'wall-assembly-1', to: 'sheet-internal-1' },
+                        { from: 'sheet-internal-1', to: 'wall-flip-1' },
+                        { from: 'wall-flip-1', to: 'insulation-installation-1' },
+                        { from: 'insulation-installation-1', to: 'sheet-external-1' },
+                        { from: 'sheet-external-1', to: 'facade-1' },
+                        { from: 'facade-1', to: 'loading-1' }
+                    );
+                } else {
+                    addNode('server-1', 'server', 'hsbServer', 'Server', width * 0.44, height * 0.04);
+                    addNode('office-1', 'office', 'hsbMake Office', 'Office', width * 0.44, height * 0.26);
+                    addNode('client-cnc-1', 'client-cnc', 'hsbClient', 'CNC machine 1', width * 0.30, height * 0.49);
+                    addNode('client-cnc-2', 'client-cnc', 'hsbClient', 'CNC machine 2', width * 0.58, height * 0.49);
+                    addNode('client-manual-1', 'client-manual', 'hsbClient', 'Work station 1', width * 0.08, height * 0.74);
+                    addNode('client-manual-2', 'client-manual', 'hsbClient', 'Work station 2', width * 0.30, height * 0.74);
+                    addNode('client-manual-3', 'client-manual', 'hsbClient', 'Work station 3', width * 0.52, height * 0.74);
+                    addNode('client-manual-4', 'client-manual', 'hsbClient', 'Work station 4', width * 0.74, height * 0.74);
+
+                    links.push(
+                        { from: 'server-1', to: 'office-1' },
+                        { from: 'office-1', to: 'client-cnc-1' },
+                        { from: 'office-1', to: 'client-cnc-2' },
+                        { from: 'client-cnc-1', to: 'client-manual-1' },
+                        { from: 'client-cnc-1', to: 'client-manual-2' },
+                        { from: 'client-cnc-2', to: 'client-manual-3' },
+                        { from: 'client-cnc-2', to: 'client-manual-4' }
+                    );
+                }
+
+                mapNodeState = applyMapNodeCustomizations(nodes, width, height);
+                const validNodeIds = new Set(mapNodeState.map(node => node.id));
+                manualMapLinks = links.filter(link => validNodeIds.has(link.from) && validNodeIds.has(link.to));
+                selectedMapNodeId = null;
+                previewConnectionPoint = null;
+                closeMapTypeMenu();
+            }
+
             function syncProductionMapState() {
+                const { width, height } = getMapDimensions();
+                if (mapMode === 'fixed-1' || mapMode === 'fixed-2') {
+                    buildFixedMapPreset(mapMode, width, height);
+                    return;
+                }
+
                 let targetManual = Math.max(0, parseNumberValue('#manualStations'));
                 let targetCnc = Math.max(0, parseNumberValue('#cncMachines'));
                 const configuredClientTotal = targetManual + targetCnc;
@@ -2910,7 +3286,6 @@
                     clientManual: targetManual,
                     clientCnc: targetCnc
                 };
-                const { width, height } = getMapDimensions();
                 const existingPositions = new Map(
                     mapNodeState
                         .filter(node => node.type === 'server' || node.type === 'office')
@@ -2929,7 +3304,7 @@
                         nextNodes.push({
                             id,
                             type,
-                            title: type === 'server' ? 'hsbMake Server' : type === 'office' ? 'hsbMake Office' : 'hsbMake Client',
+                            title: type === 'server' ? 'hsbServer' : 'hsbMake Office',
                             label: type === 'server' ? 'Server' : type === 'office' ? 'Office' : (type === 'client-manual' ? 'Work station' : 'CNC machine'),
                             x: saved ? saved.x : fallback.x,
                             y: saved ? saved.y : fallback.y
@@ -2992,7 +3367,7 @@
                     nextNodes.push({
                         id,
                         type,
-                        title: 'hsbMake Client',
+                        title: 'hsbClient',
                         label: isManual ? 'Work station' : cncLabel,
                         x: Number.isFinite(node.x) ? node.x : fallback.x,
                         y: Number.isFinite(node.y) ? node.y : fallback.y
@@ -3004,27 +3379,18 @@
                     }
                 });
 
-                mapNodeState = nextNodes.map(node => ({
-                    ...node,
-                    x: Math.min(Math.max(8, node.x), width - 236),
-                    y: Math.min(Math.max(8, node.y), height - 108)
-                }));
-
-                const validNodeIds = new Set(mapNodeState.map(node => node.id));
-                manualMapLinks = manualMapLinks.filter(link => validNodeIds.has(link.from) && validNodeIds.has(link.to));
-
-                // Re-seed if the node topology changed (e.g. different counts)
-                const nodeStateKey = mapNodeState.map(n => n.id).sort().join(',');
+                // Re-seed if the calculator-driven node topology changed.
+                const nodeStateKey = nextNodes.map(n => n.id).sort().join(',');
                 if (nodeStateKey !== lastNodeStateKey) {
                     lastNodeStateKey = nodeStateKey;
                     hasSeededDefaultMapLinks = false;
                 }
 
                 if (!hasSeededDefaultMapLinks) {
-                    const serverIds = mapNodeState.filter(node => node.type === 'server').map(node => node.id);
-                    const officeIds = mapNodeState.filter(node => node.type === 'office').map(node => node.id);
-                    const workStationIds = mapNodeState.filter(node => node.type === 'client-manual').map(node => node.id);
-                    const cncIds = mapNodeState.filter(node => node.type === 'client-cnc').map(node => node.id);
+                    const serverIds = nextNodes.filter(node => node.type === 'server').map(node => node.id);
+                    const officeIds = nextNodes.filter(node => node.type === 'office').map(node => node.id);
+                    const workStationIds = nextNodes.filter(node => node.type === 'client-manual').map(node => node.id);
+                    const cncIds = nextNodes.filter(node => node.type === 'client-cnc').map(node => node.id);
                     const nextLinks = [];
 
                     const firstServerId = serverIds[0] || null;
@@ -3073,6 +3439,11 @@
                     hasSeededDefaultMapLinks = true;
                 }
 
+                mapNodeState = applyMapNodeCustomizations(nextNodes, width, height);
+
+                const validNodeIds = new Set(mapNodeState.map(node => node.id));
+                manualMapLinks = manualMapLinks.filter(link => validNodeIds.has(link.from) && validNodeIds.has(link.to));
+
                 if (selectedMapNodeId && !validNodeIds.has(selectedMapNodeId)) {
                     selectedMapNodeId = null;
                     previewConnectionPoint = null;
@@ -3111,11 +3482,18 @@
                     const to = getNodeCenter(toNode);
                     const controlOffset = Math.abs(to.x - from.x) * 0.35;
                     const d = `M ${from.x} ${from.y} C ${from.x + controlOffset} ${from.y}, ${to.x - controlOffset} ${to.y}, ${to.x} ${to.y}`;
+                    const reverseD = `M ${to.x} ${to.y} C ${to.x - controlOffset} ${to.y}, ${from.x + controlOffset} ${from.y}, ${from.x} ${from.y}`;
                     const midX = (from.x + to.x) / 2;
                     const midY = (from.y + to.y) / 2;
                     const key = [link.from, link.to].sort().join('__');
                     return `<g class="map-link-group" data-link-key="${key}">
-                        <path class="map-link${link.manual ? ' map-link-manual' : ''}" marker-end="url(#mapArrowHead)" d="${d}" fill="none"></path>
+                        <path class="map-link${link.manual ? ' map-link-manual' : ''}" marker-start="url(#mapArrowHead)" marker-end="url(#mapArrowHead)" d="${d}" fill="none"></path>
+                        <polygon class="map-link-flow-arrow" points="0,0 -10,5 -10,-5">
+                            <animateMotion dur="4.4s" repeatCount="indefinite" rotate="auto" path="${d}"></animateMotion>
+                        </polygon>
+                        <polygon class="map-link-flow-arrow" points="0,0 -10,5 -10,-5">
+                            <animateMotion dur="4.4s" repeatCount="indefinite" rotate="auto" begin="-2.2s" path="${d}"></animateMotion>
+                        </polygon>
                         <path class="map-link-hit" d="${d}" fill="none"></path>
                         <g class="map-link-delete" data-link-key="${key}" transform="translate(${midX} ${midY})">
                             <circle class="map-link-delete-bg" r="11"></circle>
@@ -3155,8 +3533,9 @@
                     nodeElement.style.top = `${node.y}px`;
                     nodeElement.dataset.nodeId = node.id;
                     nodeElement.innerHTML = `
-                        ${node.type === 'client-manual' || node.type === 'client-cnc' ? `
-                        <span class="map-node-link-action" data-map-action="change-type" role="button" aria-label="Change node type" title="Change">
+                        <span class="map-node-delete-action" data-map-action="delete-node" role="button" aria-label="Delete node" title="Delete">×</span>
+                        ${isInteractiveMapMode() && (node.type === 'client-manual' || node.type === 'client-cnc') ? `
+                        <span class="map-node-link-action map-node-change-action" data-map-action="change-type" role="button" aria-label="Change node type" title="Change">
                             <svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M20 7h-8"></path>
                                 <path d="m16 3 4 4-4 4"></path>
@@ -3165,7 +3544,7 @@
                             </svg>
                         </span>
                         ` : ''}
-                        <span class="map-node-accent">${getMapNodeIcon(node.type)}</span>
+                        <span class="map-node-accent">${getMapNodeIcon(node.iconType || node.type)}</span>
                         <span class="map-node-copy">
                             <span class="text-[11px] tracking-[0.14em] text-slate-500">${node.title}</span>
                             <span class="mt-1 text-base font-bold custom-green">${node.label}</span>
@@ -3263,12 +3642,22 @@
             }
 
             function attachMapNodeEvents(nodeElement, nodeId) {
+                const deleteTrigger = nodeElement.querySelector('[data-map-action="delete-node"]');
+                deleteTrigger?.addEventListener('click', event => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    deleteMapNode(nodeId);
+                });
+
+                const canEditConnections = isInteractiveMapMode();
+
                 let dragOffsetX = 0;
                 let dragOffsetY = 0;
                 let moved = false;
 
                 const changeTypeTrigger = nodeElement.querySelector('[data-map-action="change-type"]');
                 changeTypeTrigger?.addEventListener('click', event => {
+                    if (!canEditConnections) return;
                     event.preventDefault();
                     event.stopPropagation();
                     if (mapTypeMenuNodeId === nodeId) {
@@ -3280,7 +3669,7 @@
 
                 nodeElement.addEventListener('pointerdown', event => {
                     const target = event.target;
-                    if (target && typeof target.closest === 'function' && target.closest('[data-map-action="change-type"]')) {
+                    if (target && typeof target.closest === 'function' && target.closest('[data-map-action]')) {
                         return;
                     }
                     event.preventDefault();
@@ -3311,12 +3700,12 @@
                     if (nodeElement.hasPointerCapture(event.pointerId)) {
                         nodeElement.releasePointerCapture(event.pointerId);
                     }
-                    if (!moved) {
+                    if (!moved && canEditConnections) {
                         const node = mapNodeState.find(item => item.id === nodeId);
                         if (!node) return;
 
                         const target = event.target;
-                        if (target && typeof target.closest === 'function' && target.closest('[data-map-action="change-type"]')) {
+                        if (target && typeof target.closest === 'function' && target.closest('[data-map-action]')) {
                             return;
                         }
 
@@ -4342,12 +4731,29 @@
                 menuMarketPopoverInput?.classList.remove('visible');
                 menuMarketPopoverResults?.classList.remove('visible');
                 closeMapTypeMenu();
+                closeMapAddMenu();
             });
 
             menuMarketPopoverInput?.addEventListener('click', event => event.stopPropagation());
             menuMarketPopoverResults?.addEventListener('click', event => event.stopPropagation());
+            mapAddBtn?.addEventListener('click', event => {
+                event.preventDefault();
+                event.stopPropagation();
+                toggleMapAddMenu();
+            });
+            mapAddMenu?.addEventListener('click', event => {
+                event.stopPropagation();
+                const target = event.target;
+                if (!target || typeof target.closest !== 'function') return;
+                const option = target.closest('[data-map-add-type]');
+                if (!option) return;
+                const requestedType = option.getAttribute('data-map-add-type');
+                if (!requestedType) return;
+                addMapNode(requestedType);
+            });
 
             productionMap?.addEventListener('pointermove', event => {
+                if (!isInteractiveMapMode()) return;
                 if (!selectedMapNodeId) return;
                 const pointer = getPointerLogicalPosition(event);
                 previewConnectionPoint = {
@@ -4358,25 +4764,45 @@
             });
 
             productionMap?.addEventListener('pointerdown', event => {
+                if (!isInteractiveMapMode()) {
+                    const target = event.target;
+                    if (!target || typeof target.closest !== 'function') {
+                        closeMapTypeMenu();
+                        closeMapAddMenu();
+                        return;
+                    }
+                    const clickedInsideAddMenu = target.closest('.map-add-menu');
+                    const clickedAddButton = target.closest('#mapAddBtn');
+                    if (!clickedInsideAddMenu && !clickedAddButton) {
+                        closeMapTypeMenu();
+                        closeMapAddMenu();
+                    }
+                    return;
+                }
                 const target = event.target;
                 if (!target || typeof target.closest !== 'function') {
                     closeMapTypeMenu();
+                    closeMapAddMenu();
                     return;
                 }
                 const clickedInsideMenu = target.closest('.map-type-menu');
+                const clickedInsideAddMenu = target.closest('.map-add-menu');
                 const clickedNode = target.closest('.map-node');
-                if (!clickedInsideMenu && !clickedNode) {
+                if (!clickedInsideMenu && !clickedInsideAddMenu && !clickedNode && !target.closest('#mapAddBtn')) {
                     closeMapTypeMenu();
+                    closeMapAddMenu();
                 }
             });
 
             productionMap?.addEventListener('pointerleave', () => {
+                if (!isInteractiveMapMode()) return;
                 if (!selectedMapNodeId) return;
                 previewConnectionPoint = getNodeCenter(mapNodeState.find(node => node.id === selectedMapNodeId));
                 drawProductionMapLinks();
             });
 
             mapLinks?.addEventListener('click', event => {
+                if (!isInteractiveMapMode()) return;
                 const target = event.target;
                 if (!target || typeof target.closest !== 'function') return;
                 const deleteControl = target.closest('.map-link-delete');
@@ -4447,6 +4873,22 @@
             window.addEventListener('resize', () => {
                 renderProductionMap();
             });
+
+            mapModeButtons.forEach(button => {
+                button.addEventListener('click', () => {
+                    const requestedMode = button.dataset.mapMode;
+                    if (!requestedMode || requestedMode === mapMode) return;
+                    mapMode = requestedMode;
+                    if (mapMode === 'fixed-1' || mapMode === 'fixed-2') {
+                        const { width, height } = getMapDimensions();
+                        buildFixedMapPreset(mapMode, width, height);
+                    }
+                    updateMapModeToggleUI();
+                    renderProductionMap();
+                });
+            });
+
+            updateMapModeToggleUI();
 
             Chart.defaults.font.family = 'Open Sans';
             sections.forEach(updateStatus);
