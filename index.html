@@ -1896,6 +1896,15 @@
                 return `${prefix} ${raw}`;
             }
 
+            function formatTooltipTitleAsMonths(rawValue) {
+                const raw = String(rawValue ?? '').trim();
+                if (!raw) return '';
+                if (!/^\d+(?:\.\d+)?$/.test(raw)) return raw;
+
+                const months = Math.max(0, Math.round(Number(raw) * 12));
+                return months === 1 ? '1 month' : `${months} months`;
+            }
+
             function setText(selector, value) {
                 const node = document.querySelector(selector);
                 if (!node) return;
@@ -2644,6 +2653,11 @@
             let pendingClientTypeChange = null;
             let mapMode = 'dynamic';
             let mapCustomNodeCounter = 0;
+            const mapStateByMode = {
+                dynamic: null,
+                'fixed-1': null,
+                'fixed-2': null
+            };
             const mapDeletedNodeIdsByMode = {
                 dynamic: new Set(),
                 'fixed-1': new Set(),
@@ -3013,7 +3027,7 @@
                 cncMachineTypesList.innerHTML = Array.from({ length: count }).map((_, index) => `
                     <div class="grid grid-cols-1 sm:grid-cols-[110px_1fr] gap-3 items-center">
                         <label class="text-slate-700 font-semibold">Machine ${index + 1}:</label>
-                        <input type="text" id="cncMachineName-${index + 1}" class="w-full border border-slate-200 bg-white text-slate-900 rounded-xl px-4 py-3 shadow-sm focus:border-[#2A5429] focus:ring-2 focus:ring-[#2A5429] focus:ring-opacity-20 outline-none" placeholder="e.g., Hundegger Speedcut, Weinmann Multifunction, etc.">
+                        <input type="text" id="cncMachineName-${index + 1}" class="w-full border border-slate-200 bg-white text-slate-900 rounded-xl px-4 py-3 shadow-sm focus:border-[#2A5429] focus:ring-2 focus:ring-[#2A5429] focus:ring-opacity-20 outline-none" placeholder="Hundegger Speedcut, Weinmann Multifunction">
                     </div>
                 `).join('');
                 // When a CNC name changes, refresh the map labels
@@ -3143,7 +3157,70 @@
                 const fromIsOffice = String(fromId || '').startsWith('office-');
                 const toIsServer = String(toId || '').startsWith('server-');
                 const toIsOffice = String(toId || '').startsWith('office-');
-                return (fromIsServer && toIsOffice) || (fromIsOffice && toIsServer);
+                return fromIsServer || fromIsOffice || toIsServer || toIsOffice;
+            }
+
+            function cloneMapPoint(point) {
+                return point && typeof point === 'object'
+                    ? { x: point.x, y: point.y }
+                    : null;
+            }
+
+            function cloneMapStateSnapshot(snapshot) {
+                if (!snapshot) return null;
+                return {
+                    mapNodeState: Array.isArray(snapshot.mapNodeState) ? snapshot.mapNodeState.map(node => ({ ...node })) : [],
+                    manualMapLinks: Array.isArray(snapshot.manualMapLinks)
+                        ? snapshot.manualMapLinks.filter(link => !isServerOfficeLink(link.from, link.to)).map(link => ({ ...link }))
+                        : [],
+                    hasSeededDefaultMapLinks: Boolean(snapshot.hasSeededDefaultMapLinks),
+                    lastNodeStateKey: String(snapshot.lastNodeStateKey || ''),
+                    selectedMapNodeId: snapshot.selectedMapNodeId || null,
+                    previewConnectionPoint: cloneMapPoint(snapshot.previewConnectionPoint),
+                    mapCustomNodeCounter: Number(snapshot.mapCustomNodeCounter || 0),
+                    mapZoom: Number.isFinite(snapshot.mapZoom) ? snapshot.mapZoom : mapZoom
+                };
+            }
+
+            function saveMapStateForMode(mode) {
+                const targetMode = mode || mapMode;
+                mapStateByMode[targetMode] = cloneMapStateSnapshot({
+                    mapNodeState,
+                    manualMapLinks,
+                    hasSeededDefaultMapLinks,
+                    lastNodeStateKey,
+                    selectedMapNodeId,
+                    previewConnectionPoint,
+                    mapCustomNodeCounter,
+                    mapZoom
+                });
+            }
+
+            function restoreMapStateForMode(mode) {
+                const snapshot = cloneMapStateSnapshot(mapStateByMode[mode]);
+                if (!snapshot) return false;
+                mapNodeState = snapshot.mapNodeState;
+                manualMapLinks = snapshot.manualMapLinks;
+                hasSeededDefaultMapLinks = snapshot.hasSeededDefaultMapLinks;
+                lastNodeStateKey = snapshot.lastNodeStateKey;
+                selectedMapNodeId = snapshot.selectedMapNodeId;
+                previewConnectionPoint = snapshot.previewConnectionPoint;
+                mapCustomNodeCounter = snapshot.mapCustomNodeCounter;
+                if (Number.isFinite(snapshot.mapZoom)) {
+                    mapZoom = snapshot.mapZoom;
+                }
+                return true;
+            }
+
+            function resetMapStateForMode() {
+                mapNodeState = [];
+                manualMapLinks = [];
+                hasSeededDefaultMapLinks = false;
+                lastNodeStateKey = '';
+                selectedMapNodeId = null;
+                previewConnectionPoint = null;
+                mapCustomNodeCounter = 0;
+                closeMapTypeMenu();
             }
 
             function getServerOfficeLayout(width, officeTotal = 1) {
@@ -3516,7 +3593,7 @@
             function syncProductionMapState() {
                 const { width, height } = getMapDimensions();
                 if (mapMode === 'fixed-1' || mapMode === 'fixed-2') {
-                    if (!mapNodeState.length) {
+                    if (!mapStateByMode[mapMode]) {
                         buildFixedMapPreset(mapMode, width, height);
                         return;
                     }
@@ -3656,22 +3733,9 @@
                 }
 
                 if (!hasSeededDefaultMapLinks) {
-                    const serverIds = nextNodes.filter(node => node.type === 'server').map(node => node.id);
-                    const officeIds = nextNodes.filter(node => node.type === 'office').map(node => node.id);
                     const workStationIds = nextNodes.filter(node => node.type === 'client-manual').map(node => node.id);
                     const cncIds = nextNodes.filter(node => node.type === 'client-cnc').map(node => node.id);
                     const nextLinks = [];
-
-                    const firstServerId = serverIds[0] || null;
-
-                    // Offices → CNC machines
-                    cncIds.forEach((cncId, index) => {
-                        if (officeIds.length > 0) {
-                            nextLinks.push({ from: officeIds[index % officeIds.length], to: cncId });
-                        } else if (firstServerId) {
-                            nextLinks.push({ from: firstServerId, to: cncId });
-                        }
-                    });
 
                     // CNC machines → Work stations (max 2 per CNC, then chain remaining work stations)
                     const workStationsPerCnc = 2;
@@ -4690,7 +4754,7 @@
                                 callbacks: {
                                     title: function(context) {
                                         const raw = context?.[0]?.parsed?.x ?? context?.[0]?.label ?? '';
-                                        return formatTooltipTitleAsYear(raw);
+                                        return formatTooltipTitleAsMonths(raw);
                                     },
                                     label: function(context) {
                                         const label = context.dataset.label || 'Value';
@@ -5167,14 +5231,14 @@
                 button.addEventListener('click', () => {
                     const requestedMode = button.dataset.mapMode;
                     if (!requestedMode) return;
-                    if (requestedMode === mapMode && requestedMode !== 'fixed-2') return;
+                    if (requestedMode === mapMode) return;
+                    saveMapStateForMode(mapMode);
                     mapMode = requestedMode;
-                    if (requestedMode === 'fixed-2') {
-                        mapZoom = Math.min(mapZoom, 0.45);
-                    }
-                    if (mapMode === 'fixed-1' || mapMode === 'fixed-2') {
-                        const { width, height } = getMapDimensions();
-                        buildFixedMapPreset(mapMode, width, height);
+                    if (!restoreMapStateForMode(requestedMode)) {
+                        resetMapStateForMode();
+                        if (requestedMode === 'fixed-2') {
+                            mapZoom = Math.min(mapZoom, 0.45);
+                        }
                     }
                     updateMapModeToggleUI();
                     renderProductionMap();
