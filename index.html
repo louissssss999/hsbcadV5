@@ -273,6 +273,25 @@
             gap: 12px;
             transition: transform 0.18s ease, box-shadow 0.18s ease;
         }
+        .map-surface.map-mode-fixed-2 .map-node {
+            width: 182px;
+            min-height: 70px;
+            border-radius: 12px;
+            padding: 8px 10px;
+            gap: 8px;
+        }
+        .map-surface.map-mode-fixed-2 .map-node-accent {
+            width: 34px;
+            height: 34px;
+        }
+        .map-surface.map-mode-fixed-2 .map-node-copy > span:first-child {
+            font-size: 9px;
+            letter-spacing: 0.1em;
+        }
+        .map-surface.map-mode-fixed-2 .map-node-copy > span:last-child {
+            margin-top: 0.1rem;
+            font-size: 0.82rem;
+        }
         .map-node:active {
             cursor: grabbing;
         }
@@ -1358,6 +1377,16 @@
                         <button type="button" class="map-add-option" data-map-add-type="office" role="menuitem"><img src="office.png" alt="Office icon"><span>hsbMake Office</span></button>
                         <button type="button" class="map-add-option" data-map-add-type="client-manual" role="menuitem"><img src="manual.png" alt="Work station icon"><span>hsbClient Work station</span></button>
                         <button type="button" class="map-add-option" data-map-add-type="client-cnc" role="menuitem"><img src="CNC.png" alt="CNC machine icon"><span>hsbClient CNC Machine</span></button>
+                        <button type="button" class="map-add-option" data-map-add-type="client-modules" role="menuitem"><img src="favicon.png" alt="Modules icon"><span>Modules</span></button>
+                        <button type="button" class="map-add-option" data-map-add-type="client-wall-table" role="menuitem"><img src="favicon.png" alt="Wall Table icon"><span>Wall Table</span></button>
+                        <button type="button" class="map-add-option" data-map-add-type="client-special-table" role="menuitem"><img src="favicon.png" alt="Special Table icon"><span>Special Table</span></button>
+                        <button type="button" class="map-add-option" data-map-add-type="client-opening" role="menuitem"><img src="favicon.png" alt="Opening icon"><span>Opening</span></button>
+                        <button type="button" class="map-add-option" data-map-add-type="client-floor" role="menuitem"><img src="favicon.png" alt="Floor icon"><span>Floor</span></button>
+                        <button type="button" class="map-add-option" data-map-add-type="client-roof" role="menuitem"><img src="favicon.png" alt="Roof icon"><span>Roof</span></button>
+                        <button type="button" class="map-add-option" data-map-add-type="client-floor-flip" role="menuitem"><img src="favicon.png" alt="Floor Flip icon"><span>Floor Flip</span></button>
+                        <button type="button" class="map-add-option" data-map-add-type="client-roof-flip" role="menuitem"><img src="favicon.png" alt="Roof Flip icon"><span>Roof Flip</span></button>
+                        <button type="button" class="map-add-option" data-map-add-type="client-cnc-sheet-cutting" role="menuitem"><img src="favicon.png" alt="CNC Sheet cutting icon"><span>CNC Sheet cutting</span></button>
+                        <button type="button" class="map-add-option" data-map-add-type="client-production-in" role="menuitem"><img src="favicon.png" alt="Production IN icon"><span>Production IN</span></button>
                         <button type="button" class="map-add-option" data-map-add-type="client-beam-cutting" role="menuitem"><img src="bc1.png" alt="Beam Cutting icon"><span>Beam Cutting</span></button>
                         <button type="button" class="map-add-option" data-map-add-type="client-window-modules" role="menuitem"><img src="Window modules.png" alt="Window Modules icon"><span>Window Modules</span></button>
                         <button type="button" class="map-add-option" data-map-add-type="client-wall-assembly" role="menuitem"><img src="Wall assembly.png" alt="Wall Assembly icon"><span>Wall Assembly</span></button>
@@ -2429,7 +2458,7 @@
             ];
 
             let currentInputStep = 0;
-            let mapZoom = 0.65;
+            let mapZoom = 0.5;
 
             function getSectionByKey(key) {
                 return sections.find(section => section.key === key);
@@ -2922,7 +2951,7 @@
                 }
 
                 if (Number.isFinite(record.state_map_zoom)) {
-                    mapZoom = Math.min(2, Math.max(0.6, Number(record.state_map_zoom)));
+                    mapZoom = Math.min(2, Math.max(0.35, Number(record.state_map_zoom)));
                 }
 
                 if (Array.isArray(record.state_map_node_state)) {
@@ -3027,6 +3056,9 @@
                 if (type === 'factory-inputs') {
                     return '<img src="favicon.png" alt="Factory inputs" class="h-6 w-6 object-contain">';
                 }
+                if (type === 'client-modules' || type === 'client-wall-table' || type === 'client-special-table' || type === 'client-opening' || type === 'client-floor' || type === 'client-roof' || type === 'client-floor-flip' || type === 'client-roof-flip' || type === 'client-cnc-sheet-cutting' || type === 'client-production-in') {
+                    return '<img src="favicon.png" alt="Special client node" class="h-6 w-6 object-contain">';
+                }
                 if (type === 'client-beam-cutting') {
                     return '<img src="bc1.png" alt="Beam cutting" class="h-9 w-9 object-contain">';
                 }
@@ -3067,6 +3099,28 @@
                 if (resultClientsInput) resultClientsInput.value = String(Math.max(10, totalClients));
             }
 
+            function getMapNodeMetrics() {
+                if (mapMode === 'fixed-2') {
+                    return {
+                        width: 182,
+                        height: 70,
+                        dragPaddingX: 8,
+                        dragPaddingY: 14,
+                        addGapX: 18,
+                        addGapY: 24
+                    };
+                }
+
+                return {
+                    width: 228,
+                    height: 94,
+                    dragPaddingX: 8,
+                    dragPaddingY: 14,
+                    addGapX: 18,
+                    addGapY: 24
+                };
+            }
+
             function getMapDimensions() {
                 const minHeight = 520;
                 if (productionMap.style.minHeight !== `${minHeight}px`) {
@@ -3093,8 +3147,9 @@
             }
 
             function getServerOfficeLayout(width, officeTotal = 1) {
-                const nodeWidth = 228;
-                const nodeHeight = 94;
+                const metrics = getMapNodeMetrics();
+                const nodeWidth = metrics.width;
+                const nodeHeight = metrics.height;
                 const officeCount = Math.max(1, officeTotal);
                 const officeGap = 20;
                 const topPadding = 12;
@@ -3145,10 +3200,11 @@
             }
 
             function clampMapNodePosition(node, width, height) {
+                const metrics = getMapNodeMetrics();
                 return {
                     ...node,
-                    x: Math.min(Math.max(8, node.x), width - 236),
-                    y: Math.min(Math.max(8, node.y), height - 108)
+                    x: Math.min(Math.max(8, node.x), Math.max(8, width - (metrics.width + metrics.dragPaddingX))),
+                    y: Math.min(Math.max(8, node.y), Math.max(8, height - (metrics.height + metrics.dragPaddingY)))
                 };
             }
 
@@ -3182,7 +3238,18 @@
 
             function addMapNode(type) {
                 const { width, height } = getMapDimensions();
+                const metrics = getMapNodeMetrics();
                 const specialClientTypes = {
+                    'client-modules': 'Modules',
+                    'client-wall-table': 'Wall Table',
+                    'client-special-table': 'Special Table',
+                    'client-opening': 'Opening',
+                    'client-floor': 'Floor',
+                    'client-roof': 'Roof',
+                    'client-floor-flip': 'Floor Flip',
+                    'client-roof-flip': 'Roof Flip',
+                    'client-cnc-sheet-cutting': 'CNC Sheet cutting',
+                    'client-production-in': 'Production IN',
                     'client-beam-cutting': 'Beam Cutting',
                     'client-window-modules': 'Window Modules',
                     'client-wall-assembly': 'Wall Assembly',
@@ -3202,29 +3269,40 @@
                 const nodeIndex = mapNodeState.length;
                 const column = nodeIndex % 3;
                 const row = Math.floor(nodeIndex / 3);
-                getCurrentModeAddedNodes().push(clampMapNodePosition({
+                const nextNode = clampMapNodePosition({
                     id: `custom-${mapMode}-${++mapCustomNodeCounter}`,
                     type: baseType,
                     title: template.title,
                     label: template.label,
                     iconType: isSpecialClient ? type : null,
-                    x: 24 + (column * 246),
-                    y: 84 + (row * 118)
-                }, width, height));
+                    x: 24 + (column * (metrics.width + metrics.addGapX)),
+                    y: 84 + (row * (metrics.height + metrics.addGapY))
+                }, width, height);
+
+                if (mapMode === 'fixed-1' || mapMode === 'fixed-2') {
+                    mapNodeState.push(nextNode);
+                } else {
+                    getCurrentModeAddedNodes().push(nextNode);
+                }
                 closeMapAddMenu();
                 renderProductionMap();
             }
 
             function deleteMapNode(nodeId) {
-                if (String(nodeId || '').startsWith('server-') || String(nodeId || '').startsWith('office-')) {
+                if (areCoreMapNodesLocked() && (String(nodeId || '').startsWith('server-') || String(nodeId || '').startsWith('office-'))) {
                     return;
                 }
-                const addedNodes = getCurrentModeAddedNodes();
-                const addedIndex = addedNodes.findIndex(node => node.id === nodeId);
-                if (addedIndex >= 0) {
-                    addedNodes.splice(addedIndex, 1);
+
+                if (mapMode === 'fixed-1' || mapMode === 'fixed-2') {
+                    mapNodeState = mapNodeState.filter(node => node.id !== nodeId);
                 } else {
-                    getCurrentModeDeletedNodeIds().add(nodeId);
+                    const addedNodes = getCurrentModeAddedNodes();
+                    const addedIndex = addedNodes.findIndex(node => node.id === nodeId);
+                    if (addedIndex >= 0) {
+                        addedNodes.splice(addedIndex, 1);
+                    } else {
+                        getCurrentModeDeletedNodeIds().add(nodeId);
+                    }
                 }
 
                 manualMapLinks = manualMapLinks.filter(link => link.from !== nodeId && link.to !== nodeId);
@@ -3239,6 +3317,7 @@
             }
 
             function createDefaultNodePosition(type, index, total, width, height) {
+                const metrics = getMapNodeMetrics();
                 if (type === 'server' || type === 'office') {
                     const layout = getServerOfficeLayout(width, total);
                     if (type === 'server') {
@@ -3258,12 +3337,12 @@
                     'client-cnc': height * 0.52,
                     'client-manual': height * 0.74
                 };
-                const usableWidth = Math.max(120, width - 260);
+                const usableWidth = Math.max(120, width - (metrics.width + 32));
                 const spacing = total > 1 ? usableWidth / (total - 1) : 0;
                 const left = 20 + (total > 1 ? spacing * index : usableWidth / 2);
                 return {
                     x: left,
-                    y: rows[type] - 47
+                    y: rows[type] - (metrics.height / 2)
                 };
             }
 
@@ -3274,13 +3353,19 @@
             }
 
             function isInteractiveMapMode() {
+                // All map modes are editable; fixed modes only control initial layout presets.
+                return mapMode === 'dynamic' || mapMode === 'fixed-1' || mapMode === 'fixed-2';
+            }
+
+            function areCoreMapNodesLocked() {
+                // Dynamic mode keeps core nodes fixed; fixed presets become fully editable.
                 return mapMode === 'dynamic';
             }
 
             function buildFixedMapPreset(preset, width, height) {
                 const nodes = [];
                 const links = [];
-                const fixedOfficeCount = preset === 'fixed-1' ? 5 : 1;
+                const fixedOfficeCount = 5;
                 const coreLayout = getServerOfficeLayout(width, fixedOfficeCount);
 
                 updateServerOfficeContainer(width, fixedOfficeCount);
@@ -3335,21 +3420,82 @@
                     );
                 } else {
                     addNode('server-1', 'server', 'hsbServer', 'Server', coreLayout.serverX, coreLayout.serverY);
-                    addNode('office-1', 'office', 'hsbMake Office', 'Office', coreLayout.officeRowLeft, coreLayout.officeY);
-                    addNode('client-cnc-1', 'client-cnc', 'hsbClient', 'CNC machine 1', width * 0.30, height * 0.49);
-                    addNode('client-cnc-2', 'client-cnc', 'hsbClient', 'CNC machine 2', width * 0.58, height * 0.49);
-                    addNode('client-manual-1', 'client-manual', 'hsbClient', 'Work station 1', width * 0.08, height * 0.74);
-                    addNode('client-manual-2', 'client-manual', 'hsbClient', 'Work station 2', width * 0.30, height * 0.74);
-                    addNode('client-manual-3', 'client-manual', 'hsbClient', 'Work station 3', width * 0.52, height * 0.74);
-                    addNode('client-manual-4', 'client-manual', 'hsbClient', 'Work station 4', width * 0.74, height * 0.74);
+                    addNode('office-1', 'office', 'hsbMake Office', 'Office 1', coreLayout.officeRowLeft + ((coreLayout.nodeWidth + coreLayout.officeGap) * 0), coreLayout.officeY);
+                    addNode('office-2', 'office', 'hsbMake Office', 'Office 2', coreLayout.officeRowLeft + ((coreLayout.nodeWidth + coreLayout.officeGap) * 1), coreLayout.officeY);
+                    addNode('office-3', 'office', 'hsbMake Office', 'Office 3', coreLayout.officeRowLeft + ((coreLayout.nodeWidth + coreLayout.officeGap) * 2), coreLayout.officeY);
+                    addNode('office-4', 'office', 'hsbMake Office', 'Office 4', coreLayout.officeRowLeft + ((coreLayout.nodeWidth + coreLayout.officeGap) * 3), coreLayout.officeY);
+                    addNode('office-5', 'office', 'hsbMake Office', 'Office 5', coreLayout.officeRowLeft + ((coreLayout.nodeWidth + coreLayout.officeGap) * 4), coreLayout.officeY);
+
+                    addNode('beam-cutting-1', 'client-manual', 'hsbClient', 'Beam Cutting', width * 0.10, height * 0.34, 'client-beam-cutting');
+                    addNode('production-in-1', 'client-manual', 'hsbClient', 'Production IN', width * 0.00, height * 0.54, 'client-production-in');
+                    addNode('cnc-sheet-cutting-1', 'client-manual', 'hsbClient', 'CNC Sheet cutting', width * 0.10, height * 0.72, 'client-cnc-sheet-cutting');
+                    addNode('beam-cutting-2', 'client-manual', 'hsbClient', 'Beam Cutting', width * 0.10, height * 0.53, 'client-beam-cutting');
+
+                    addNode('modules-1', 'client-manual', 'hsbClient', 'Modules', width * 0.18, height * 0.21, 'client-modules');
+                    addNode('modules-2', 'client-manual', 'hsbClient', 'Modules', width * 0.18, height * 0.31, 'client-modules');
+
+                    addNode('wall-table-1', 'client-manual', 'hsbClient', 'Wall Table', width * 0.29, height * 0.31, 'client-wall-table');
+                    addNode('wall-table-2', 'client-manual', 'hsbClient', 'Wall Table', width * 0.39, height * 0.31, 'client-wall-table');
+                    addNode('wall-flip-1', 'client-manual', 'hsbClient', 'Wall Flip', width * 0.49, height * 0.31, 'client-wall-flip');
+                    addNode('wall-table-3', 'client-manual', 'hsbClient', 'Wall Table', width * 0.59, height * 0.31, 'client-wall-table');
+                    addNode('wall-table-4', 'client-manual', 'hsbClient', 'Wall Table', width * 0.69, height * 0.31, 'client-wall-table');
+                    addNode('opening-1', 'client-manual', 'hsbClient', 'Opening', width * 0.79, height * 0.31, 'client-opening');
+                    addNode('facade-1', 'client-manual', 'hsbClient', 'Facade', width * 0.89, height * 0.31, 'client-facade');
+
+                    addNode('special-table-1', 'client-manual', 'hsbClient', 'Special Table', width * 0.39, height * 0.43, 'client-special-table');
+                    addNode('wall-flip-2', 'client-manual', 'hsbClient', 'Wall Flip', width * 0.49, height * 0.43, 'client-wall-flip');
+                    addNode('special-table-2', 'client-manual', 'hsbClient', 'Special Table', width * 0.59, height * 0.43, 'client-special-table');
+
+                    addNode('floor-1', 'client-manual', 'hsbClient', 'Floor', width * 0.28, height * 0.54, 'client-floor');
+                    addNode('floor-flip-1', 'client-manual', 'hsbClient', 'Floor Flip', width * 0.39, height * 0.54, 'client-floor-flip');
+                    addNode('floor-2', 'client-manual', 'hsbClient', 'Floor', width * 0.49, height * 0.54, 'client-floor');
+
+                    addNode('roof-1', 'client-manual', 'hsbClient', 'Roof', width * 0.28, height * 0.70, 'client-roof');
+                    addNode('roof-flip-1', 'client-manual', 'hsbClient', 'Roof Flip', width * 0.39, height * 0.70, 'client-roof-flip');
+                    addNode('roof-2', 'client-manual', 'hsbClient', 'Roof', width * 0.49, height * 0.70, 'client-roof');
+
+                    addNode('loading-1', 'client-manual', 'hsbClient', 'Loading', width * 0.95, height * 0.53, 'client-loading');
+                    addNode('loading-2', 'client-manual', 'hsbClient', 'Loading', width * 0.95, height * 0.70, 'client-loading');
 
                     links.push(
-                        { from: 'office-1', to: 'client-cnc-1' },
-                        { from: 'office-1', to: 'client-cnc-2' },
-                        { from: 'client-cnc-1', to: 'client-manual-1' },
-                        { from: 'client-cnc-1', to: 'client-manual-2' },
-                        { from: 'client-cnc-2', to: 'client-manual-3' },
-                        { from: 'client-cnc-2', to: 'client-manual-4' }
+                        { from: 'production-in-1', to: 'beam-cutting-1' },
+                        { from: 'production-in-1', to: 'beam-cutting-2' },
+                        { from: 'production-in-1', to: 'cnc-sheet-cutting-1' },
+
+                        { from: 'beam-cutting-1', to: 'modules-1' },
+                        { from: 'beam-cutting-1', to: 'modules-2' },
+                        { from: 'modules-1', to: 'wall-table-1' },
+                        { from: 'modules-2', to: 'wall-table-1' },
+                        { from: 'beam-cutting-2', to: 'wall-table-1' },
+
+                        { from: 'wall-table-1', to: 'wall-table-2' },
+                        { from: 'wall-table-2', to: 'wall-flip-1' },
+                        { from: 'wall-flip-1', to: 'wall-table-3' },
+                        { from: 'wall-table-3', to: 'wall-table-4' },
+                        { from: 'wall-table-4', to: 'opening-1' },
+                        { from: 'opening-1', to: 'facade-1' },
+
+                        { from: 'beam-cutting-2', to: 'special-table-1' },
+                        { from: 'special-table-1', to: 'wall-flip-2' },
+                        { from: 'wall-flip-2', to: 'special-table-2' },
+                        { from: 'special-table-2', to: 'wall-table-4' },
+
+                        { from: 'cnc-sheet-cutting-1', to: 'floor-1' },
+                        { from: 'cnc-sheet-cutting-1', to: 'roof-1' },
+                        { from: 'beam-cutting-2', to: 'floor-1' },
+                        { from: 'beam-cutting-2', to: 'cnc-sheet-cutting-1' },
+
+                        { from: 'floor-1', to: 'floor-flip-1' },
+                        { from: 'floor-flip-1', to: 'floor-2' },
+                        { from: 'roof-1', to: 'roof-flip-1' },
+                        { from: 'roof-flip-1', to: 'roof-2' },
+
+                        { from: 'facade-1', to: 'loading-1' },
+                        { from: 'facade-1', to: 'loading-2' },
+                        { from: 'floor-2', to: 'loading-1' },
+                        { from: 'floor-2', to: 'loading-2' },
+                        { from: 'roof-2', to: 'loading-1' },
+                        { from: 'roof-2', to: 'loading-2' }
                     );
                 }
 
@@ -3370,7 +3516,16 @@
             function syncProductionMapState() {
                 const { width, height } = getMapDimensions();
                 if (mapMode === 'fixed-1' || mapMode === 'fixed-2') {
-                    buildFixedMapPreset(mapMode, width, height);
+                    if (!mapNodeState.length) {
+                        buildFixedMapPreset(mapMode, width, height);
+                        return;
+                    }
+
+                    const fixedOfficeCount = 5;
+                    updateServerOfficeContainer(width, fixedOfficeCount);
+                    mapNodeState = mapNodeState.map(node => clampMapNodePosition(node, width, height));
+                    const validNodeIds = new Set(mapNodeState.map(node => node.id));
+                    manualMapLinks = manualMapLinks.filter(link => validNodeIds.has(link.from) && validNodeIds.has(link.to));
                     return;
                 }
 
@@ -3561,7 +3716,8 @@
             }
 
             function getNodeCenter(node) {
-                return { x: node.x + 114, y: node.y + 47 };
+                const metrics = getMapNodeMetrics();
+                return { x: node.x + (metrics.width / 2), y: node.y + (metrics.height / 2) };
             }
 
             function getPointerLogicalPosition(event) {
@@ -3633,6 +3789,8 @@
             function renderProductionMap() {
                 if (!productionMap || !mapNodes || !mapLinks) return;
 
+                productionMap.classList.toggle('map-mode-fixed-2', mapMode === 'fixed-2');
+
                 mapNodes.style.transform = `scale(${mapZoom})`;
                 mapNodes.style.transformOrigin = 'top left';
                 if (mapCoreGroup) {
@@ -3650,12 +3808,13 @@
                     const nodeElement = document.createElement('button');
                     nodeElement.type = 'button';
                     const isCoreNode = isCoreMapNodeType(node.type);
-                    nodeElement.className = `map-node map-node-${node.type}${isCoreNode ? ' map-node-locked' : ''}${selectedMapNodeId === node.id ? ' map-node-selected' : ''}`;
+                    const isLockedNode = isCoreNode && areCoreMapNodesLocked();
+                    nodeElement.className = `map-node map-node-${node.type}${isLockedNode ? ' map-node-locked' : ''}${selectedMapNodeId === node.id ? ' map-node-selected' : ''}`;
                     nodeElement.style.left = `${node.x}px`;
                     nodeElement.style.top = `${node.y}px`;
                     nodeElement.dataset.nodeId = node.id;
                     nodeElement.innerHTML = `
-                        ${isCoreNode ? '' : '<span class="map-node-delete-action" data-map-action="delete-node" role="button" aria-label="Delete node" title="Delete">×</span>'}
+                        ${isLockedNode ? '' : '<span class="map-node-delete-action" data-map-action="delete-node" role="button" aria-label="Delete node" title="Delete">×</span>'}
                         ${isInteractiveMapMode() && (node.type === 'client-manual' || node.type === 'client-cnc') ? `
                         <span class="map-node-link-action map-node-change-action" data-map-action="change-type" role="button" aria-label="Change node type" title="Change">
                             <svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2">
@@ -3718,7 +3877,8 @@
                 `;
 
                 const { width, height } = getMapDimensions();
-                const preferredLeft = node.x + 236;
+                const metrics = getMapNodeMetrics();
+                const preferredLeft = node.x + metrics.width + 8;
                 const left = Math.min(Math.max(8, preferredLeft), width - 228);
                 const top = Math.min(Math.max(8, node.y), height - 126);
                 menu.style.left = `${left}px`;
@@ -3772,7 +3932,7 @@
                 });
 
                 const canEditConnections = isInteractiveMapMode();
-                const isCoreNode = nodeElement.classList.contains('map-node-server') || nodeElement.classList.contains('map-node-office');
+                const isLockedNode = nodeElement.classList.contains('map-node-locked');
 
                 let dragOffsetX = 0;
                 let dragOffsetY = 0;
@@ -3791,7 +3951,7 @@
                 });
 
                 nodeElement.addEventListener('pointerdown', event => {
-                    if (isCoreNode) {
+                    if (isLockedNode) {
                         return;
                     }
                     const target = event.target;
@@ -3815,8 +3975,9 @@
                     moved = true;
                     const pointer = getPointerLogicalPosition(event);
                     const { width, height } = getMapDimensions();
-                    node.x = Math.min(Math.max(8, pointer.x - dragOffsetX), width - 236);
-                    node.y = Math.min(Math.max(8, pointer.y - dragOffsetY), height - 108);
+                    const metrics = getMapNodeMetrics();
+                    node.x = Math.min(Math.max(8, pointer.x - dragOffsetX), Math.max(8, width - (metrics.width + metrics.dragPaddingX)));
+                    node.y = Math.min(Math.max(8, pointer.y - dragOffsetY), Math.max(8, height - (metrics.height + metrics.dragPaddingY)));
                     nodeElement.style.left = `${node.x}px`;
                     nodeElement.style.top = `${node.y}px`;
                     drawProductionMapLinks();
@@ -4837,7 +4998,7 @@
             });
 
             mapZoomOutBtn?.addEventListener('click', () => {
-                mapZoom = Math.max(0.6, Number((mapZoom - 0.1).toFixed(2)));
+                mapZoom = Math.max(0.35, Number((mapZoom - 0.1).toFixed(2)));
                 renderProductionMap();
             });
 
@@ -5005,8 +5166,12 @@
             mapModeButtons.forEach(button => {
                 button.addEventListener('click', () => {
                     const requestedMode = button.dataset.mapMode;
-                    if (!requestedMode || requestedMode === mapMode) return;
+                    if (!requestedMode) return;
+                    if (requestedMode === mapMode && requestedMode !== 'fixed-2') return;
                     mapMode = requestedMode;
+                    if (requestedMode === 'fixed-2') {
+                        mapZoom = Math.min(mapZoom, 0.45);
+                    }
                     if (mapMode === 'fixed-1' || mapMode === 'fixed-2') {
                         const { width, height } = getMapDimensions();
                         buildFixedMapPreset(mapMode, width, height);
