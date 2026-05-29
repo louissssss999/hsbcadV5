@@ -243,6 +243,15 @@
                 linear-gradient(180deg, #f7fcf7 0%, #edf6ed 100%);
             overflow: hidden;
         }
+        .map-core-group {
+            position: absolute;
+            border-radius: 20px;
+            border: 2px solid rgba(42, 84, 41, 0.2);
+            background: linear-gradient(180deg, #ddf7d8 0%, #c9efc3 100%);
+            box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.5);
+            pointer-events: none;
+            z-index: 0;
+        }
         .map-node {
             position: absolute;
             width: 228px;
@@ -266,6 +275,12 @@
         }
         .map-node:active {
             cursor: grabbing;
+        }
+        .map-node-locked {
+            cursor: default;
+        }
+        .map-node-locked:active {
+            cursor: default;
         }
         .map-node:hover {
             transform: translateY(-1px);
@@ -419,10 +434,16 @@
             stroke-dasharray: 8 6;
             animation: flowLine 1s linear infinite;
         }
+        .map-link-red {
+            stroke: #dc2626;
+        }
         .map-link-flow-arrow {
             fill: #2A5429;
             opacity: 0.9;
             filter: drop-shadow(0 2px 3px rgba(15, 23, 42, 0.18));
+        }
+        .map-link-flow-arrow-red {
+            fill: #dc2626;
         }
         .map-link-hit {
             stroke: transparent;
@@ -450,8 +471,12 @@
             font-weight: 700;
             pointer-events: none;
         }
+        #mapLinks {
+            z-index: 1;
+        }
         #mapNodes {
             pointer-events: none;
+            z-index: 2;
         }
         .map-node {
             pointer-events: auto;
@@ -1344,6 +1369,7 @@
                         <button type="button" class="map-add-option" data-map-add-type="client-loading" role="menuitem"><img src="Loading.png" alt="Loading icon"><span>Loading</span></button>
                     </div>
                 </div>
+                <div id="mapCoreGroup" class="map-core-group" aria-hidden="true"></div>
                 <svg id="mapLinks" class="absolute inset-0 h-full w-full"></svg>
                 <div id="mapNodes" class="absolute inset-0"></div>
             </div>
@@ -2554,6 +2580,7 @@
             const productionMap = document.getElementById('productionMap');
             const mapLinks = document.getElementById('mapLinks');
             const mapNodes = document.getElementById('mapNodes');
+            const mapCoreGroup = document.getElementById('mapCoreGroup');
             const mapAddBtn = document.getElementById('mapAddBtn');
             const mapAddMenu = document.getElementById('mapAddMenu');
             const mapModeButtons = Array.from(document.querySelectorAll('[data-map-mode]'));
@@ -2997,6 +3024,9 @@
                 if (type === 'office') {
                     return '<img src="office.png" alt="Office" class="h-6 w-6 object-contain">';
                 }
+                if (type === 'factory-inputs') {
+                    return '<img src="favicon.png" alt="Factory inputs" class="h-6 w-6 object-contain">';
+                }
                 if (type === 'client-beam-cutting') {
                     return '<img src="bc1.png" alt="Beam cutting" class="h-9 w-9 object-contain">';
                 }
@@ -3048,6 +3078,62 @@
                     width: Math.max(320, (rect.width || productionMap.clientWidth || 960) / zoom),
                     height: Math.max(minHeight, (rect.height || productionMap.clientHeight || minHeight) / zoom)
                 };
+            }
+
+            function isCoreMapNodeType(type) {
+                return type === 'server' || type === 'office' || type === 'factory-inputs';
+            }
+
+            function isServerOfficeLink(fromId, toId) {
+                const fromIsServer = String(fromId || '').startsWith('server-');
+                const fromIsOffice = String(fromId || '').startsWith('office-');
+                const toIsServer = String(toId || '').startsWith('server-');
+                const toIsOffice = String(toId || '').startsWith('office-');
+                return (fromIsServer && toIsOffice) || (fromIsOffice && toIsServer);
+            }
+
+            function getServerOfficeLayout(width, officeTotal = 1) {
+                const nodeWidth = 228;
+                const nodeHeight = 94;
+                const officeCount = Math.max(1, officeTotal);
+                const officeGap = 20;
+                const topPadding = 12;
+                const bottomPadding = 6;
+                const sidePadding = 24;
+                const serverOfficeGap = 14;
+
+                const officeRowWidth = (officeCount * nodeWidth) + ((officeCount - 1) * officeGap);
+                const groupLeft = 12;
+                const groupWidth = Math.max(240, width - 24);
+                const groupTop = 16;
+
+                const serverX = groupLeft + ((groupWidth - nodeWidth) / 2);
+                const serverY = groupTop + topPadding;
+                const officeY = serverY + nodeHeight + serverOfficeGap;
+                const officeRowLeft = groupLeft + ((groupWidth - officeRowWidth) / 2);
+                const groupHeight = (officeY - groupTop) + nodeHeight + bottomPadding;
+
+                return {
+                    groupLeft,
+                    groupTop,
+                    groupWidth,
+                    groupHeight,
+                    nodeWidth,
+                    officeGap,
+                    serverX,
+                    serverY,
+                    officeRowLeft,
+                    officeY
+                };
+            }
+
+            function updateServerOfficeContainer(width, officeTotal = 1) {
+                if (!mapCoreGroup) return;
+                const layout = getServerOfficeLayout(width, officeTotal);
+                mapCoreGroup.style.left = `${layout.groupLeft}px`;
+                mapCoreGroup.style.top = `${layout.groupTop}px`;
+                mapCoreGroup.style.width = `${layout.groupWidth}px`;
+                mapCoreGroup.style.height = `${layout.groupHeight}px`;
             }
 
             function getCurrentModeDeletedNodeIds() {
@@ -3130,6 +3216,9 @@
             }
 
             function deleteMapNode(nodeId) {
+                if (String(nodeId || '').startsWith('server-') || String(nodeId || '').startsWith('office-')) {
+                    return;
+                }
                 const addedNodes = getCurrentModeAddedNodes();
                 const addedIndex = addedNodes.findIndex(node => node.id === nodeId);
                 if (addedIndex >= 0) {
@@ -3150,9 +3239,22 @@
             }
 
             function createDefaultNodePosition(type, index, total, width, height) {
+                if (type === 'server' || type === 'office') {
+                    const layout = getServerOfficeLayout(width, total);
+                    if (type === 'server') {
+                        return {
+                            x: layout.serverX,
+                            y: layout.serverY
+                        };
+                    }
+
+                    return {
+                        x: layout.officeRowLeft + (index * (layout.nodeWidth + layout.officeGap)),
+                        y: layout.officeY
+                    };
+                }
+
                 const rows = {
-                    server: height * 0.08,
-                    office: height * 0.30,
                     'client-cnc': height * 0.52,
                     'client-manual': height * 0.74
                 };
@@ -3178,6 +3280,10 @@
             function buildFixedMapPreset(preset, width, height) {
                 const nodes = [];
                 const links = [];
+                const fixedOfficeCount = preset === 'fixed-1' ? 5 : 1;
+                const coreLayout = getServerOfficeLayout(width, fixedOfficeCount);
+
+                updateServerOfficeContainer(width, fixedOfficeCount);
 
                 function addNode(id, type, title, label, x, y, iconType = null) {
                     nodes.push({
@@ -3192,35 +3298,32 @@
                 }
 
                 if (preset === 'fixed-1') {
-                    addNode('server-1', 'server', 'hsbServer', 'Server', width * 0.01, height * 0.07);
+                    addNode('server-1', 'server', 'hsbServer', 'Server', coreLayout.serverX, coreLayout.serverY);
 
-                    addNode('office-2', 'office', 'hsbMake Office', 'Office 2', width * 0.24, height * 0.07);
-                    addNode('office-5', 'office', 'hsbMake Office', 'Office 5', width * 0.41, height * 0.07);
-                    addNode('office-3', 'office', 'hsbMake Office', 'Office 3', width * 0.24, height * 0.21);
-                    addNode('office-4', 'office', 'hsbMake Office', 'Office 4', width * 0.41, height * 0.21);
-                    addNode('office-1', 'office', 'hsbMake Office', 'Office 1', width * 0.58, height * 0.14);
+                    addNode('office-1', 'office', 'hsbMake Office', 'Office 1', coreLayout.officeRowLeft + ((coreLayout.nodeWidth + coreLayout.officeGap) * 0), coreLayout.officeY);
+                    addNode('office-2', 'office', 'hsbMake Office', 'Office 2', coreLayout.officeRowLeft + ((coreLayout.nodeWidth + coreLayout.officeGap) * 1), coreLayout.officeY);
+                    addNode('office-3', 'office', 'hsbMake Office', 'Office 3', coreLayout.officeRowLeft + ((coreLayout.nodeWidth + coreLayout.officeGap) * 2), coreLayout.officeY);
+                    addNode('office-4', 'office', 'hsbMake Office', 'Office 4', coreLayout.officeRowLeft + ((coreLayout.nodeWidth + coreLayout.officeGap) * 3), coreLayout.officeY);
+                    addNode('office-5', 'office', 'hsbMake Office', 'Office 5', coreLayout.officeRowLeft + ((coreLayout.nodeWidth + coreLayout.officeGap) * 4), coreLayout.officeY);
+                    addNode('factory-inputs-1', 'factory-inputs', 'Factory inputs', 'Factory inputs', width * 0.01, height * 0.50, 'factory-inputs');
 
-                    addNode('beam-cutting-1', 'client-manual', 'hsbClient', 'Beam Cutting 1', width * 0.01, height * 0.42, 'client-beam-cutting');
-                    addNode('beam-cutting-2', 'client-manual', 'hsbClient', 'Beam Cutting 2', width * 0.21, height * 0.42, 'client-beam-cutting');
+                    addNode('beam-cutting-1', 'client-manual', 'hsbClient', 'Beam Cutting 1', width * 0.22, height * 0.50, 'client-beam-cutting');
+                    addNode('beam-cutting-2', 'client-manual', 'hsbClient', 'Beam Cutting 2', width * 0.22, height * 0.67, 'client-beam-cutting');
 
-                    addNode('window-modules-1', 'client-manual', 'hsbClient', 'Window Modules', width * 0.40, height * 0.42, 'client-window-modules');
-                    addNode('wall-assembly-1', 'client-manual', 'hsbClient', 'Wall Assembly', width * 0.58, height * 0.42, 'client-wall-assembly');
-                    addNode('sheet-internal-1', 'client-manual', 'hsbClient', 'Sheet Internal', width * 0.78, height * 0.41, 'client-sheet-internal');
-                    addNode('wall-flip-1', 'client-manual', 'hsbClient', 'Wall Flip', width * 0.78, height * 0.57, 'client-wall-flip');
+                    addNode('window-modules-1', 'client-manual', 'hsbClient', 'Window Modules', width * 0.41, height * 0.49, 'client-window-modules');
+                    addNode('wall-assembly-1', 'client-manual', 'hsbClient', 'Wall Assembly', width * 0.59, height * 0.49, 'client-wall-assembly');
+                    addNode('sheet-internal-1', 'client-manual', 'hsbClient', 'Sheet Internal', width * 0.79, height * 0.49, 'client-sheet-internal');
+                    addNode('wall-flip-1', 'client-manual', 'hsbClient', 'Wall Flip', width * 0.79, height * 0.66, 'client-wall-flip');
 
-                    addNode('insulation-installation-1', 'client-manual', 'hsbClient', 'Insulation & Installation', width * 0.78, height * 0.74, 'client-insulation-installation');
-                    addNode('sheet-external-1', 'client-manual', 'hsbClient', 'Sheet External', width * 0.58, height * 0.74, 'client-sheet-external');
-                    addNode('facade-1', 'client-manual', 'hsbClient', 'Facade', width * 0.40, height * 0.74, 'client-facade');
-                    addNode('loading-1', 'client-manual', 'hsbClient', 'Loading', width * 0.11, height * 0.74, 'client-loading');
+                    addNode('insulation-installation-1', 'client-manual', 'hsbClient', 'Insulation & Installation', width * 0.79, height * 0.84, 'client-insulation-installation');
+                    addNode('sheet-external-1', 'client-manual', 'hsbClient', 'Sheet External', width * 0.59, height * 0.84, 'client-sheet-external');
+                    addNode('facade-1', 'client-manual', 'hsbClient', 'Facade', width * 0.41, height * 0.84, 'client-facade');
+                    addNode('loading-1', 'client-manual', 'hsbClient', 'Loading', width * 0.11, height * 0.84, 'client-loading');
 
                     links.push(
-                        { from: 'server-1', to: 'office-1' },
-                        { from: 'server-1', to: 'office-2' },
-                        { from: 'server-1', to: 'office-3' },
-                        { from: 'server-1', to: 'office-4' },
-                        { from: 'server-1', to: 'office-5' },
-                        { from: 'server-1', to: 'beam-cutting-1' },
-                        { from: 'beam-cutting-1', to: 'beam-cutting-2' },
+                        { from: 'factory-inputs-1', to: 'beam-cutting-1' },
+                        { from: 'factory-inputs-1', to: 'beam-cutting-2' },
+                        { from: 'beam-cutting-1', to: 'window-modules-1' },
                         { from: 'beam-cutting-2', to: 'window-modules-1' },
                         { from: 'window-modules-1', to: 'wall-assembly-1' },
                         { from: 'wall-assembly-1', to: 'sheet-internal-1' },
@@ -3231,8 +3334,8 @@
                         { from: 'facade-1', to: 'loading-1' }
                     );
                 } else {
-                    addNode('server-1', 'server', 'hsbServer', 'Server', width * 0.44, height * 0.04);
-                    addNode('office-1', 'office', 'hsbMake Office', 'Office', width * 0.44, height * 0.26);
+                    addNode('server-1', 'server', 'hsbServer', 'Server', coreLayout.serverX, coreLayout.serverY);
+                    addNode('office-1', 'office', 'hsbMake Office', 'Office', coreLayout.officeRowLeft, coreLayout.officeY);
                     addNode('client-cnc-1', 'client-cnc', 'hsbClient', 'CNC machine 1', width * 0.30, height * 0.49);
                     addNode('client-cnc-2', 'client-cnc', 'hsbClient', 'CNC machine 2', width * 0.58, height * 0.49);
                     addNode('client-manual-1', 'client-manual', 'hsbClient', 'Work station 1', width * 0.08, height * 0.74);
@@ -3241,7 +3344,6 @@
                     addNode('client-manual-4', 'client-manual', 'hsbClient', 'Work station 4', width * 0.74, height * 0.74);
 
                     links.push(
-                        { from: 'server-1', to: 'office-1' },
                         { from: 'office-1', to: 'client-cnc-1' },
                         { from: 'office-1', to: 'client-cnc-2' },
                         { from: 'client-cnc-1', to: 'client-manual-1' },
@@ -3251,9 +3353,15 @@
                     );
                 }
 
+                getCurrentModeDeletedNodeIds().forEach(id => {
+                    if (String(id).startsWith('server-') || String(id).startsWith('office-')) {
+                        getCurrentModeDeletedNodeIds().delete(id);
+                    }
+                });
+
                 mapNodeState = applyMapNodeCustomizations(nodes, width, height);
                 const validNodeIds = new Set(mapNodeState.map(node => node.id));
-                manualMapLinks = links.filter(link => validNodeIds.has(link.from) && validNodeIds.has(link.to));
+                manualMapLinks = links.filter(link => validNodeIds.has(link.from) && validNodeIds.has(link.to) && !isServerOfficeLink(link.from, link.to));
                 selectedMapNodeId = null;
                 previewConnectionPoint = null;
                 closeMapTypeMenu();
@@ -3281,11 +3389,17 @@
                 }
 
                 const counts = {
-                    server: Math.max(0, Number(resultServersInput?.value || 0)),
-                    office: Math.max(0, Number(resultOfficesInput?.value || 0)),
+                    server: 1,
+                    office: Math.max(1, Number(resultOfficesInput?.value || 0)),
                     clientManual: targetManual,
                     clientCnc: targetCnc
                 };
+                updateServerOfficeContainer(width, counts.office);
+                getCurrentModeDeletedNodeIds().forEach(id => {
+                    if (String(id).startsWith('server-') || String(id).startsWith('office-')) {
+                        getCurrentModeDeletedNodeIds().delete(id);
+                    }
+                });
                 const existingPositions = new Map(
                     mapNodeState
                         .filter(node => node.type === 'server' || node.type === 'office')
@@ -3299,8 +3413,8 @@
                 ].forEach(([type, total]) => {
                     for (let index = 0; index < total; index += 1) {
                         const id = type + '-' + (index + 1);
-                        const saved = existingPositions.get(id);
                         const fallback = createDefaultNodePosition(type, index, total, width, height);
+                        const saved = type === 'server' || type === 'office' ? null : existingPositions.get(id);
                         nextNodes.push({
                             id,
                             type,
@@ -3395,11 +3509,6 @@
 
                     const firstServerId = serverIds[0] || null;
 
-                    // Server → Offices
-                    officeIds.forEach(officeId => {
-                        if (firstServerId) nextLinks.push({ from: firstServerId, to: officeId });
-                    });
-
                     // Offices → CNC machines
                     cncIds.forEach((cncId, index) => {
                         if (officeIds.length > 0) {
@@ -3431,6 +3540,7 @@
 
                     const seen = new Set();
                     manualMapLinks = nextLinks.filter(link => {
+                        if (isServerOfficeLink(link.from, link.to)) return false;
                         const key = `${link.from}__${link.to}`;
                         if (seen.has(key)) return false;
                         seen.add(key);
@@ -3442,7 +3552,7 @@
                 mapNodeState = applyMapNodeCustomizations(nextNodes, width, height);
 
                 const validNodeIds = new Set(mapNodeState.map(node => node.id));
-                manualMapLinks = manualMapLinks.filter(link => validNodeIds.has(link.from) && validNodeIds.has(link.to));
+                manualMapLinks = manualMapLinks.filter(link => validNodeIds.has(link.from) && validNodeIds.has(link.to) && !isServerOfficeLink(link.from, link.to));
 
                 if (selectedMapNodeId && !validNodeIds.has(selectedMapNodeId)) {
                     selectedMapNodeId = null;
@@ -3464,6 +3574,7 @@
             }
 
             function drawProductionMapLinks() {
+                manualMapLinks = manualMapLinks.filter(link => !isServerOfficeLink(link.from, link.to));
                 if (!productionMap || !mapLinks) return;
                 const allLinks = manualMapLinks.map(link => ({ ...link, manual: true }));
                 const nodeById = new Map(mapNodeState.map(node => [node.id, node]));
@@ -3473,25 +3584,31 @@
                         <marker id="mapArrowHead" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
                             <path d="M0,0 L10,5 L0,10 z" fill="#2A5429"></path>
                         </marker>
+                        <marker id="mapArrowHeadRed" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto">
+                            <path d="M0,0 L10,5 L0,10 z" fill="#dc2626"></path>
+                        </marker>
                     </defs>
                 ` + allLinks.map(link => {
                     const fromNode = nodeById.get(link.from);
                     const toNode = nodeById.get(link.to);
                     if (!fromNode || !toNode) return '';
+                    const isRedLink = link.color === 'red';
                     const from = getNodeCenter(fromNode);
                     const to = getNodeCenter(toNode);
                     const controlOffset = Math.abs(to.x - from.x) * 0.35;
                     const d = `M ${from.x} ${from.y} C ${from.x + controlOffset} ${from.y}, ${to.x - controlOffset} ${to.y}, ${to.x} ${to.y}`;
-                    const reverseD = `M ${to.x} ${to.y} C ${to.x - controlOffset} ${to.y}, ${from.x + controlOffset} ${from.y}, ${from.x} ${from.y}`;
                     const midX = (from.x + to.x) / 2;
                     const midY = (from.y + to.y) / 2;
                     const key = [link.from, link.to].sort().join('__');
+                    const markerId = isRedLink ? 'mapArrowHeadRed' : 'mapArrowHead';
+                    const linkClass = `map-link${link.manual ? ' map-link-manual' : ''}${isRedLink ? ' map-link-red' : ''}`;
+                    const arrowClass = `map-link-flow-arrow${isRedLink ? ' map-link-flow-arrow-red' : ''}`;
                     return `<g class="map-link-group" data-link-key="${key}">
-                        <path class="map-link${link.manual ? ' map-link-manual' : ''}" marker-start="url(#mapArrowHead)" marker-end="url(#mapArrowHead)" d="${d}" fill="none"></path>
-                        <polygon class="map-link-flow-arrow" points="0,0 -10,5 -10,-5">
+                        <path class="${linkClass}" marker-start="url(#${markerId})" marker-end="url(#${markerId})" d="${d}" fill="none"></path>
+                        <polygon class="${arrowClass}" points="0,0 -10,5 -10,-5">
                             <animateMotion dur="4.4s" repeatCount="indefinite" rotate="auto" path="${d}"></animateMotion>
                         </polygon>
-                        <polygon class="map-link-flow-arrow" points="0,0 -10,5 -10,-5">
+                        <polygon class="${arrowClass}" points="0,0 -10,5 -10,-5">
                             <animateMotion dur="4.4s" repeatCount="indefinite" rotate="auto" begin="-2.2s" path="${d}"></animateMotion>
                         </polygon>
                         <path class="map-link-hit" d="${d}" fill="none"></path>
@@ -3518,6 +3635,10 @@
 
                 mapNodes.style.transform = `scale(${mapZoom})`;
                 mapNodes.style.transformOrigin = 'top left';
+                if (mapCoreGroup) {
+                    mapCoreGroup.style.transform = `scale(${mapZoom})`;
+                    mapCoreGroup.style.transformOrigin = 'top left';
+                }
                 mapLinks.style.transform = 'none';
                 mapLinks.style.transformOrigin = 'top left';
 
@@ -3528,12 +3649,13 @@
                 mapNodeState.forEach(node => {
                     const nodeElement = document.createElement('button');
                     nodeElement.type = 'button';
-                    nodeElement.className = `map-node map-node-${node.type}${selectedMapNodeId === node.id ? ' map-node-selected' : ''}`;
+                    const isCoreNode = isCoreMapNodeType(node.type);
+                    nodeElement.className = `map-node map-node-${node.type}${isCoreNode ? ' map-node-locked' : ''}${selectedMapNodeId === node.id ? ' map-node-selected' : ''}`;
                     nodeElement.style.left = `${node.x}px`;
                     nodeElement.style.top = `${node.y}px`;
                     nodeElement.dataset.nodeId = node.id;
                     nodeElement.innerHTML = `
-                        <span class="map-node-delete-action" data-map-action="delete-node" role="button" aria-label="Delete node" title="Delete">×</span>
+                        ${isCoreNode ? '' : '<span class="map-node-delete-action" data-map-action="delete-node" role="button" aria-label="Delete node" title="Delete">×</span>'}
                         ${isInteractiveMapMode() && (node.type === 'client-manual' || node.type === 'client-cnc') ? `
                         <span class="map-node-link-action map-node-change-action" data-map-action="change-type" role="button" aria-label="Change node type" title="Change">
                             <svg viewBox="0 0 24 24" class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2">
@@ -3650,6 +3772,7 @@
                 });
 
                 const canEditConnections = isInteractiveMapMode();
+                const isCoreNode = nodeElement.classList.contains('map-node-server') || nodeElement.classList.contains('map-node-office');
 
                 let dragOffsetX = 0;
                 let dragOffsetY = 0;
@@ -3668,6 +3791,9 @@
                 });
 
                 nodeElement.addEventListener('pointerdown', event => {
+                    if (isCoreNode) {
+                        return;
+                    }
                     const target = event.target;
                     if (target && typeof target.closest === 'function' && target.closest('[data-map-action]')) {
                         return;
@@ -3719,7 +3845,9 @@
                             if (existingIndex >= 0) {
                                 manualMapLinks.splice(existingIndex, 1);
                             } else {
-                                manualMapLinks.push({ from: selectedMapNodeId, to: nodeId });
+                                if (!isServerOfficeLink(selectedMapNodeId, nodeId)) {
+                                    manualMapLinks.push({ from: selectedMapNodeId, to: nodeId });
+                                }
                             }
                             selectedMapNodeId = null;
                             previewConnectionPoint = null;
